@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Light mode splash background - matches app's light surface color -->
+    <color name="splash_background_light">#F8F9FE</color>
+    <!-- Dark mode splash background - matches app's dark surface color -->
+    <color name="splash_background_dark">#131318</color>
+</resources>

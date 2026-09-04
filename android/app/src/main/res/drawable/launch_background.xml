@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Native Android Splash Screen: light mode -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Solid light background matching the app's light theme surface color -->
+    <item android:drawable="@color/splash_background_light" />
+
+    <!-- Centered app icon logo -->
+    <item>
+        <bitmap
+            android:gravity="center"
+            android:src="@mipmap/ic_launcher_splash" />
+    </item>
+</layer-list>
