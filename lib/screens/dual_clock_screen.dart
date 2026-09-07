@@ -220,333 +220,411 @@ class _DualClockScreenState extends State<DualClockScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 1. Small toggle above top clock to switch between 12/24 hrs format
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Time Format',
-                      style: theme.textTheme.labelMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isWideScreen = constraints.maxWidth >= 720;
+
+            if (isWideScreen) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1200),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Left Column: Two time sections
+                        Expanded(
+                          flex: 3,
+                          child: _buildClocksSection(
+                            theme,
+                            colorScheme,
+                            topDateTime,
+                            bottomDateTime,
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        // Right Column: Recents
+                        Expanded(
+                          flex: 2,
+                          child: _recentTimezones.isNotEmpty
+                              ? _buildRecentTimezonesCard(theme, colorScheme)
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  FormatToggle(
-                    is24Hour: _is24Hour,
-                    onChanged: (val) {
-                      setState(() {
-                        _is24Hour = val;
-                      });
-                    },
+                ),
+              );
+            }
+
+            // Mobile view: single column (as is)
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildClocksSection(
+                    theme,
+                    colorScheme,
+                    topDateTime,
+                    bottomDateTime,
                   ),
+                  if (_recentTimezones.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    _buildRecentTimezonesCard(theme, colorScheme),
+                  ],
                 ],
               ),
-              const SizedBox(height: 12),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
-              // 2. Top Row: System time fetched from system in bold large text
-              // Edit enabled on click using Material time picker
-              ClockDisplayCard(
-                title: _isCustomTime ? 'CUSTOM SYSTEM TIME' : 'SYSTEM LOCAL TIME',
-                subtitle: 'Tap to edit time with Material picker',
-                headerIcon: _isCustomTime ? Icons.edit_calendar_rounded : Icons.access_time_filled,
-                dateTime: topDateTime,
-                is24Hour: _is24Hour,
-                isCustom: _isCustomTime,
-                timezoneLabel: 'Local / Device',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+  /// Clocks section containing format toggle, top clock, divider, and bottom clock
+  Widget _buildClocksSection(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    DateTime topDateTime,
+    DateTime bottomDateTime,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildFormatToggleRow(theme, colorScheme),
+        const SizedBox(height: 12),
+        _buildTopClockCard(theme, colorScheme, topDateTime),
+        _buildResetButton(colorScheme),
+        const SizedBox(height: 20),
+        _buildDividerRow(theme, colorScheme),
+        const SizedBox(height: 20),
+        _buildBottomClockCard(theme, colorScheme, bottomDateTime),
+      ],
+    );
+  }
+
+  Widget _buildFormatToggleRow(ThemeData theme, ColorScheme colorScheme) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Time Format',
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        const SizedBox(width: 8),
+        FormatToggle(
+          is24Hour: _is24Hour,
+          onChanged: (val) {
+            setState(() {
+              _is24Hour = val;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTopClockCard(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    DateTime topDateTime,
+  ) {
+    return ClockDisplayCard(
+      title: _isCustomTime ? 'CUSTOM SYSTEM TIME' : 'SYSTEM LOCAL TIME',
+      subtitle: 'Tap to edit time with Material picker',
+      headerIcon: _isCustomTime ? Icons.edit_calendar_rounded : Icons.access_time_filled,
+      dateTime: topDateTime,
+      is24Hour: _is24Hour,
+      isCustom: _isCustomTime,
+      timezoneLabel: 'Local / Device',
+      trailingBadge: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.edit,
+              size: 14,
+              color: colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 4),
+            Text(
+              'Edit',
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+      onTap: _pickCustomTime,
+    );
+  }
+
+  Widget _buildResetButton(ColorScheme colorScheme) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      transitionBuilder: (child, animation) => SizeTransition(
+        sizeFactor: animation,
+        axisAlignment: -1.0,
+        child: FadeTransition(opacity: animation, child: child),
+      ),
+      child: _isCustomTime
+          ? Padding(
+              key: const ValueKey('reset_button_container'),
+              padding: const EdgeInsets.only(top: 10),
+              child: Center(
+                child: FilledButton.tonalIcon(
+                  onPressed: _resetToSystemTime,
+                  icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                  label: const Text('Reset to System Time'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.errorContainer,
+                    foregroundColor: colorScheme.onErrorContainer,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(key: ValueKey('no_reset_button')),
+    );
+  }
+
+  Widget _buildDividerRow(ThemeData theme, ColorScheme colorScheme) {
+    return Row(
+      children: [
+        const Expanded(child: Divider()),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.swap_vert_rounded,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _getTimeDifferenceString(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const Expanded(child: Divider()),
+      ],
+    );
+  }
+
+  Widget _buildBottomClockCard(
+    ThemeData theme,
+    ColorScheme colorScheme,
+    DateTime bottomDateTime,
+  ) {
+    return ClockDisplayCard(
+      title: _selectedTimezone.city.toUpperCase(),
+      subtitle: '${_selectedTimezone.region} • Tap to change timezone',
+      headerIcon: Icons.public_rounded,
+      dateTime: bottomDateTime,
+      is24Hour: _is24Hour,
+      timezoneLabel: '${_selectedTimezone.id} (${_selectedTimezone.offsetString})',
+      trailingBadge: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _selectedTimezone.offsetString,
+              style: theme.textTheme.labelSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down,
+              size: 16,
+              color: colorScheme.onPrimaryContainer,
+            ),
+          ],
+        ),
+      ),
+      onTap: _openTimezonePicker,
+    );
+  }
+
+  Widget _buildRecentTimezonesCard(ThemeData theme, ColorScheme colorScheme) {
+    return Card(
+      elevation: 0,
+      color: colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.4),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
+                    color: colorScheme.primary.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.edit,
-                        size: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Edit',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                  child: Icon(
+                    Icons.history_rounded,
+                    size: 16,
+                    color: colorScheme.primary,
                   ),
                 ),
-                onTap: _pickCustomTime,
-              ),
-
-              // Reset button displayed below if custom time is entered
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, animation) => SizeTransition(
-                  sizeFactor: animation,
-                  axisAlignment: -1.0,
-                  child: FadeTransition(opacity: animation, child: child),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Recent Timezones',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-                child: _isCustomTime
-                    ? Padding(
-                        key: const ValueKey('reset_button_container'),
-                        padding: const EdgeInsets.only(top: 10),
-                        child: Center(
-                          child: FilledButton.tonalIcon(
-                            onPressed: _resetToSystemTime,
-                            icon: const Icon(Icons.restart_alt_rounded, size: 18),
-                            label: const Text('Reset to System Time'),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: colorScheme.errorContainer,
-                              foregroundColor: colorScheme.onErrorContainer,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ),
-                      )
-                    : const SizedBox.shrink(key: ValueKey('no_reset_button')),
-              ),
+                const SizedBox(width: 6),
+                Text(
+                  'Tap to switch',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            ..._recentTimezones.take(5).map((tz) {
+              final isCurrent = tz.id == _selectedTimezone.id;
+              final tzTime = _timezoneService.convertTime(_topTime, tz.id);
+              final timeStr = DateFormat(
+                _is24Hour ? 'HH:mm' : 'h:mm a',
+              ).format(tzTime);
 
-              const SizedBox(height: 20),
-
-              // 3. Middle: Divider with time difference indicator
-              Row(
-                children: [
-                  const Expanded(child: Divider()),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: colorScheme.surfaceContainerHighest,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: colorScheme.outlineVariant.withValues(alpha: 0.5),
-                        ),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Material(
+                  color: isCurrent
+                      ? colorScheme.primaryContainer.withValues(alpha: 0.4)
+                      : colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(12),
+                  child: InkWell(
+                    onTap: () => _selectTimezone(tz),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
                       ),
                       child: Row(
-                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            Icons.swap_vert_rounded,
+                            isCurrent
+                                ? Icons.check_circle_rounded
+                                : Icons.schedule_rounded,
                             size: 16,
-                            color: colorScheme.primary,
+                            color: isCurrent
+                                ? colorScheme.primary
+                                : colorScheme.outline,
                           ),
-                          const SizedBox(width: 6),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  tz.city,
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    fontWeight: isCurrent
+                                        ? FontWeight.bold
+                                        : FontWeight.w600,
+                                    color: isCurrent
+                                        ? colorScheme.primary
+                                        : colorScheme.onSurface,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                Text(
+                                  '${tz.region} • ${tz.offsetString}',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                    fontSize: 10,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           Text(
-                            _getTimeDifferenceString(),
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: colorScheme.onSurfaceVariant,
+                            timeStr,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: isCurrent
+                                  ? colorScheme.primary
+                                  : colorScheme.onSurface,
+                              fontFeatures: const [
+                                FontFeature.tabularFigures(),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
                   ),
-                  const Expanded(child: Divider()),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // 4. Bottom Row: Another clock of same size, clickable to open timezone modal
-              ClockDisplayCard(
-                title: _selectedTimezone.city.toUpperCase(),
-                subtitle: '${_selectedTimezone.region} • Tap to change timezone',
-                headerIcon: Icons.public_rounded,
-                dateTime: bottomDateTime,
-                is24Hour: _is24Hour,
-                timezoneLabel: '${_selectedTimezone.id} (${_selectedTimezone.offsetString})',
-                trailingBadge: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        _selectedTimezone.offsetString,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        Icons.arrow_drop_down,
-                        size: 16,
-                        color: colorScheme.onPrimaryContainer,
-                      ),
-                    ],
-                  ),
                 ),
-                onTap: _openTimezonePicker,
-              ),
-
-              const SizedBox(height: 24),
-
-              // Recent Timezones (Last 5 selected)
-              if (_recentTimezones.isNotEmpty) ...[
-                Card(
-                  elevation: 0,
-                  color: colorScheme.surfaceContainerLow,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    side: BorderSide(
-                      color: colorScheme.outlineVariant.withValues(alpha: 0.4),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                color: colorScheme.primary.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Icon(
-                                Icons.history_rounded,
-                                size: 16,
-                                color: colorScheme.primary,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'Recent Timezones',
-                                style: theme.textTheme.titleSmall?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: colorScheme.onSurface,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Tap to switch',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        ..._recentTimezones.take(5).map((tz) {
-                          final isCurrent = tz.id == _selectedTimezone.id;
-                          final tzTime = _timezoneService.convertTime(_topTime, tz.id);
-                          final timeStr = DateFormat(
-                            _is24Hour ? 'HH:mm' : 'h:mm a',
-                          ).format(tzTime);
-
-                          return Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Material(
-                              color: isCurrent
-                                  ? colorScheme.primaryContainer.withValues(alpha: 0.4)
-                                  : colorScheme.surfaceContainerHighest.withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(12),
-                              child: InkWell(
-                                onTap: () => _selectTimezone(tz),
-                                borderRadius: BorderRadius.circular(12),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 8,
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        isCurrent
-                                            ? Icons.check_circle_rounded
-                                            : Icons.schedule_rounded,
-                                        size: 16,
-                                        color: isCurrent
-                                            ? colorScheme.primary
-                                            : colorScheme.outline,
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              tz.city,
-                                              style: theme.textTheme.bodyMedium?.copyWith(
-                                                fontWeight: isCurrent
-                                                    ? FontWeight.bold
-                                                    : FontWeight.w600,
-                                                color: isCurrent
-                                                    ? colorScheme.primary
-                                                    : colorScheme.onSurface,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            Text(
-                                              '${tz.region} • ${tz.offsetString}',
-                                              style: theme.textTheme.labelSmall?.copyWith(
-                                                color: colorScheme.onSurfaceVariant,
-                                                fontSize: 10,
-                                              ),
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        timeStr,
-                                        style: theme.textTheme.bodyMedium?.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                          color: isCurrent
-                                              ? colorScheme.primary
-                                              : colorScheme.onSurface,
-                                          fontFeatures: const [
-                                            FontFeature.tabularFigures(),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        }),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
+              );
+            }),
+          ],
         ),
       ),
     );

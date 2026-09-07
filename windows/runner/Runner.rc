@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "dual_clock_app" "\0"
+            VALUE "CompanyName", "info.keshav" "\0"
+            VALUE "FileDescription", "TimeBridge" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "dual_clock_app" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "dual_clock_app.exe" "\0"
-            VALUE "ProductName", "dual_clock_app" "\0"
+            VALUE "InternalName", "TimeBridge" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 info.keshav. All rights reserved." "\0"
+            VALUE "OriginalFilename", "TimeBridge.exe" "\0"
+            VALUE "ProductName", "TimeBridge" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

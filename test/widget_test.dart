@@ -219,4 +219,37 @@ void main() {
       expect(find.text('TOKYO'), findsOneWidget);
     }
   });
+
+  testWidgets('Renders 2-column layout on desktop/tablet and 1-column on mobile',
+      (WidgetTester tester) async {
+    // 1. Desktop/Tablet view (1024x768)
+    tester.view.physicalSize = const Size(1024, 768);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
+    await tester.pumpWidget(const DualClockApp(home: DualClockScreen()));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ClockDisplayCard), findsNWidgets(2));
+    final desktopRecentCard = find.widgetWithText(Card, 'Recent Timezones');
+    expect(desktopRecentCard, findsOneWidget);
+
+    // On desktop, the recent card is in the right column and sits near the top
+    final desktopRecentTop = tester.getTopLeft(desktopRecentCard).dy;
+    expect(desktopRecentTop, lessThan(200));
+
+    // 2. Mobile view (400x900)
+    tester.view.physicalSize = const Size(400, 900);
+    await tester.pumpWidget(const DualClockApp(home: DualClockScreen()));
+    await tester.pumpAndSettle();
+
+    // In mobile single-column mode, recent card is placed below the bottom clock card
+    final bottomClockFinder = find.byType(ClockDisplayCard).last;
+    final bottomClockBottom = tester.getBottomLeft(bottomClockFinder).dy;
+    final mobileRecentTop = tester.getTopLeft(find.widgetWithText(Card, 'Recent Timezones')).dy;
+    expect(mobileRecentTop, greaterThan(bottomClockBottom));
+  });
 }
