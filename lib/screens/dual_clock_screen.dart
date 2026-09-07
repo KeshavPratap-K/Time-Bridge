@@ -460,7 +460,8 @@ class _DualClockScreenState extends State<DualClockScreen> {
       headerIcon: Icons.public_rounded,
       dateTime: bottomDateTime,
       is24Hour: _is24Hour,
-      timezoneLabel: '${_selectedTimezone.id} (${_selectedTimezone.offsetString})',
+      timezoneLabel:
+          '${_selectedTimezone.id} (${_selectedTimezone.abbreviation.isNotEmpty ? "${_selectedTimezone.abbreviation}, " : ""}${_selectedTimezone.offsetString})',
       trailingBadge: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
@@ -593,7 +594,7 @@ class _DualClockScreenState extends State<DualClockScreen> {
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
-                                  '${tz.region} • ${tz.offsetString}',
+                                  '${tz.region} • ${tz.abbreviation.isNotEmpty ? "${tz.abbreviation} • " : ""}${tz.offsetString}',
                                   style: theme.textTheme.labelSmall?.copyWith(
                                     color: colorScheme.onSurfaceVariant,
                                     fontSize: 10,

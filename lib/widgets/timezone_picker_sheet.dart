@@ -94,9 +94,62 @@ class _TimezonePickerSheetState extends State<TimezonePickerSheet> {
         final matchesRegion = tz.region.toLowerCase().contains(query);
         final matchesId = tz.id.toLowerCase().contains(query);
         final matchesOffset = tz.offsetString.toLowerCase().contains(query);
+        final matchesAbbr = tz.abbreviation.toLowerCase().contains(query);
+        final matchesAlias = tz.aliases.any((alias) => alias.toLowerCase().contains(query));
 
-        return matchesCity || matchesRegion || matchesId || matchesOffset;
+        return matchesCity ||
+            matchesRegion ||
+            matchesId ||
+            matchesOffset ||
+            matchesAbbr ||
+            matchesAlias;
       }).toList();
+
+      if (query.isNotEmpty) {
+        _filteredTimezones.sort((a, b) {
+          // 1. Exact city match
+          final aExactCity = a.city.toLowerCase() == query;
+          final bExactCity = b.city.toLowerCase() == query;
+          if (aExactCity && !bExactCity) return -1;
+          if (!aExactCity && bExactCity) return 1;
+
+          // 2. Exact abbreviation or alias match (e.g. IST, EST, PST, CET, JST)
+          final aExactAbbrOrAlias = a.abbreviation.toLowerCase() == query ||
+              a.aliases.any((al) => al.toLowerCase() == query);
+          final bExactAbbrOrAlias = b.abbreviation.toLowerCase() == query ||
+              b.aliases.any((al) => al.toLowerCase() == query);
+          if (aExactAbbrOrAlias && !bExactAbbrOrAlias) return -1;
+          if (!aExactAbbrOrAlias && bExactAbbrOrAlias) return 1;
+
+          // If both have exact abbreviation or alias match, popular zones come first
+          if (aExactAbbrOrAlias && bExactAbbrOrAlias) {
+            final aPopular = _popularIds.contains(a.id);
+            final bPopular = _popularIds.contains(b.id);
+            if (aPopular && !bPopular) return -1;
+            if (!aPopular && bPopular) return 1;
+          }
+
+          // 3. City starts with query
+          final aCityStart = a.city.toLowerCase().startsWith(query);
+          final bCityStart = b.city.toLowerCase().startsWith(query);
+          if (aCityStart && !bCityStart) return -1;
+          if (!aCityStart && bCityStart) return 1;
+
+          // 4. Abbreviation starts with query
+          final aAbbrStart = a.abbreviation.toLowerCase().startsWith(query);
+          final bAbbrStart = b.abbreviation.toLowerCase().startsWith(query);
+          if (aAbbrStart && !bAbbrStart) return -1;
+          if (!aAbbrStart && bAbbrStart) return 1;
+
+          // 5. Popular zones get preference overall
+          final aPopular = _popularIds.contains(a.id);
+          final bPopular = _popularIds.contains(b.id);
+          if (aPopular && !bPopular) return -1;
+          if (!aPopular && bPopular) return 1;
+
+          return a.city.compareTo(b.city);
+        });
+      }
     });
   }
 
@@ -152,7 +205,7 @@ class _TimezonePickerSheetState extends State<TimezonePickerSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SearchBar(
                 controller: _searchController,
-                hintText: 'Search city, country, or offset (e.g. Tokyo, UTC+9)...',
+                hintText: 'Search city or timezone (e.g. Tokyo, IST, EST)...',
                 leading: const Icon(Icons.search),
                 trailing: [
                   if (_searchController.text.isNotEmpty)
@@ -258,12 +311,45 @@ class _TimezonePickerSheetState extends State<TimezonePickerSheet> {
                               size: 20,
                             ),
                           ),
-                          title: Text(
-                            tzItem.city,
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                              color: isSelected ? colorScheme.primary : colorScheme.onSurface,
-                            ),
+                          title: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Flexible(
+                                child: Text(
+                                  tzItem.city,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                                    color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              if (tzItem.abbreviation.isNotEmpty) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isSelected
+                                        ? colorScheme.primary.withValues(alpha: 0.15)
+                                        : colorScheme.surfaceContainerHighest,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Text(
+                                    tzItem.abbreviation,
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: isSelected
+                                          ? colorScheme.primary
+                                          : colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                           subtitle: Text(
                             '${tzItem.region} • ${tzItem.id}',

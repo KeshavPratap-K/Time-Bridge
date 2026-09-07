@@ -4,6 +4,8 @@ class TimezoneInfo {
   final String region;
   final String offsetString;
   final int offsetMinutes;
+  final String abbreviation;
+  final List<String> aliases;
 
   const TimezoneInfo({
     required this.id,
@@ -11,6 +13,8 @@ class TimezoneInfo {
     required this.region,
     required this.offsetString,
     required this.offsetMinutes,
+    this.abbreviation = '',
+    this.aliases = const [],
   });
 
   /// Formats offset minutes into "+HH:mm" or "-HH:mm" format.
@@ -47,5 +51,7 @@ class TimezoneInfo {
   int get hashCode => id.hashCode;
 
   @override
-  String toString() => '$city ($offsetString)';
+  String toString() => abbreviation.isNotEmpty
+      ? '$city [$abbreviation] ($offsetString)'
+      : '$city ($offsetString)';
 }

@@ -252,4 +252,61 @@ void main() {
     final mobileRecentTop = tester.getTopLeft(find.widgetWithText(Card, 'Recent Timezones')).dy;
     expect(mobileRecentTop, greaterThan(bottomClockBottom));
   });
+
+  testWidgets('Searches timezones with abbreviations like IST and EST',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const DualClockApp(home: DualClockScreen()));
+    await tester.pumpAndSettle();
+
+    // Open timezone picker by tapping bottom clock card
+    await tester.tap(find.byType(ClockDisplayCard).last);
+    await tester.pumpAndSettle();
+
+    final searchBar = find.byType(SearchBar);
+    expect(searchBar, findsOneWidget);
+
+    // 1. Search for "IST"
+    await tester.enterText(searchBar, 'IST');
+    await tester.pumpAndSettle();
+
+    // Kolkata should be visible and have IST badge inside the picker sheet
+    expect(
+      find.descendant(
+        of: find.byType(TimezonePickerSheet),
+        matching: find.text('Kolkata'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(TimezonePickerSheet),
+        matching: find.text('IST'),
+      ),
+      findsWidgets,
+    );
+
+    // 2. Search for "EST"
+    await tester.enterText(searchBar, 'EST');
+    await tester.pumpAndSettle();
+
+    // New York should be visible inside the picker sheet
+    expect(
+      find.descendant(
+        of: find.byType(TimezonePickerSheet),
+        matching: find.text('New York'),
+      ),
+      findsOneWidget,
+    );
+
+    // Tap New York to select it
+    final newYorkFinder = find.descendant(
+      of: find.byType(TimezonePickerSheet),
+      matching: find.text('New York'),
+    );
+    await tester.tap(newYorkFinder.first);
+    await tester.pumpAndSettle();
+
+    // Bottom clock should now display NEW YORK
+    expect(find.text('NEW YORK'), findsOneWidget);
+  });
 }

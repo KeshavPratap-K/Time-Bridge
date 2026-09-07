@@ -50,5 +50,29 @@ void main() {
       // London in June is BST (UTC+1)
       expect(londonTime.hour, equals(13));
     });
+
+    test('Populates abbreviations and search aliases for major timezones', () {
+      final kolkata = service.getTimezoneInfo('Asia/Kolkata');
+      expect(kolkata, isNotNull);
+      expect(kolkata!.abbreviation, equals('IST'));
+      expect(kolkata.aliases, contains('IST'));
+      expect(kolkata.aliases, contains('Indian Standard Time'));
+
+      final newYork = service.getTimezoneInfo('America/New_York');
+      expect(newYork, isNotNull);
+      expect(newYork!.aliases, contains('EST'));
+      expect(newYork.aliases, contains('EDT'));
+      expect(newYork.aliases, contains('Eastern Time'));
+
+      final tokyo = service.getTimezoneInfo('Asia/Tokyo');
+      expect(tokyo, isNotNull);
+      expect(tokyo!.abbreviation, equals('JST'));
+      expect(tokyo.aliases, contains('JST'));
+
+      final london = service.getTimezoneInfo('Europe/London');
+      expect(london, isNotNull);
+      expect(london!.aliases, contains('GMT'));
+      expect(london.aliases, contains('BST'));
+    });
   });
 }
