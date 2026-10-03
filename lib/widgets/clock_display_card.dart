@@ -96,25 +96,24 @@ class ClockDisplayCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 2,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            Flexible(
-                              child: Text(
-                                title,
-                                style: theme.textTheme.labelLarge?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                  color: isCustom
-                                      ? colorScheme.primary
-                                      : colorScheme.onSurface,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            Text(
+                              title,
+                              style: theme.textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                                color: isCustom
+                                    ? colorScheme.primary
+                                    : colorScheme.onSurface,
                               ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                            if (isCustom && !title.toUpperCase().contains('CUSTOM')) ...[
-                              const SizedBox(width: 6),
+                            if (isCustom && !title.toUpperCase().contains('CUSTOM'))
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 6, vertical: 2),
@@ -131,7 +130,6 @@ class ClockDisplayCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                            ],
                           ],
                         ),
                         const SizedBox(height: 2),

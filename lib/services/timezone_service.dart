@@ -236,6 +236,27 @@ class TimezoneService {
     }
   }
 
+  /// Converts a wall-clock [targetTime] (year, month, day, hour, minute, second)
+  /// in the given [timezoneId] back to local device [DateTime].
+  DateTime convertToLocal(DateTime targetTime, String timezoneId) {
+    init();
+    try {
+      final location = tz.getLocation(timezoneId);
+      final tzDateTime = tz.TZDateTime(
+        location,
+        targetTime.year,
+        targetTime.month,
+        targetTime.day,
+        targetTime.hour,
+        targetTime.minute,
+        targetTime.second,
+      );
+      return tzDateTime.toLocal();
+    } catch (_) {
+      return targetTime;
+    }
+  }
+
   /// Returns a default timezone to show on the bottom clock.
   /// Defaults to UTC if local matches, or a popular standard timezone.
   TimezoneInfo getDefaultSecondaryTimezone() {

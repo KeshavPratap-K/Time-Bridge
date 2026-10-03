@@ -51,6 +51,19 @@ void main() {
       expect(londonTime.hour, equals(13));
     });
 
+    test('Converts timezone wall-clock time back to local time reversibly', () {
+      final targetTime = DateTime(2026, 10, 15, 14, 30, 0);
+      final convertedLocal = service.convertToLocal(targetTime, 'America/New_York');
+
+      // Now convert that local time back to New York - it should match targetTime
+      final roundTrip = service.convertTime(convertedLocal, 'America/New_York');
+      expect(roundTrip.year, equals(targetTime.year));
+      expect(roundTrip.month, equals(targetTime.month));
+      expect(roundTrip.day, equals(targetTime.day));
+      expect(roundTrip.hour, equals(targetTime.hour));
+      expect(roundTrip.minute, equals(targetTime.minute));
+    });
+
     test('Populates abbreviations and search aliases for major timezones', () {
       final kolkata = service.getTimezoneInfo('Asia/Kolkata');
       expect(kolkata, isNotNull);

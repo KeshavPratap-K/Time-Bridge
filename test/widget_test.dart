@@ -309,4 +309,44 @@ void main() {
     // Bottom clock should now display NEW YORK
     expect(find.text('NEW YORK'), findsOneWidget);
   });
+
+  testWidgets('Bottom clock Set Date & Time button opens date then time picker and sets custom mode',
+      (WidgetTester tester) async {
+    await tester.pumpWidget(const DualClockApp(home: DualClockScreen()));
+    await tester.pumpAndSettle();
+
+    // Verify the "Set Date & Time" button is present inside the bottom ClockDisplayCard
+    expect(find.text('Set Date & Time'), findsOneWidget);
+
+    // Tap the "Set Date & Time" button
+    await tester.tap(find.text('Set Date & Time'));
+    await tester.pumpAndSettle();
+
+    // Date picker should appear (calendar icon or "OK" button)
+    expect(find.text('NEXT'), findsOneWidget);
+
+    // Confirm the date picker (tap OK / NEXT)
+    await tester.tap(find.text('NEXT'));
+    await tester.pumpAndSettle();
+
+    // Time picker should appear
+    expect(find.text('SET TIME'), findsOneWidget);
+
+    // Confirm the time picker
+    await tester.tap(find.text('SET TIME'));
+    await tester.pumpAndSettle();
+
+    // After setting time from bottom card, top clock should be in custom mode
+    expect(find.text('CUSTOM SYSTEM TIME'), findsOneWidget);
+    expect(find.text('Reset to System Time'), findsOneWidget);
+
+    // The bottom card edit button should now say "Edit Date & Time"
+    expect(find.text('Edit Date & Time'), findsOneWidget);
+
+    // Reset to system time
+    await tester.tap(find.text('Reset to System Time'));
+    await tester.pumpAndSettle();
+    expect(find.text('SYSTEM LOCAL TIME'), findsOneWidget);
+    expect(find.text('Set Date & Time'), findsOneWidget);
+  });
 }

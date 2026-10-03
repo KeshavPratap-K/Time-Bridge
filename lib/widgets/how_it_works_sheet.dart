@@ -106,7 +106,7 @@ class HowItWorksSheet extends StatelessWidget {
                     stepNumber: '4',
                     title: 'World Timezone (Bottom Clock)',
                     description:
-                        'Shows the matching time in any global timezone. Tap it to browse or search hundreds of IANA world timezones with live previews.',
+                        'Shows the matching time in any global timezone. Tap the card to browse or search world timezones. Use the "Set Date & Time" button to pick a specific date and time in that timezone — the top (local) clock updates automatically to match.',
                   ),
                   const SizedBox(height: 12),
                   _FeatureStepCard(

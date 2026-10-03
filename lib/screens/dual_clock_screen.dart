@@ -154,6 +154,83 @@ class _DualClockScreenState extends State<DualClockScreen> {
     );
   }
 
+  /// Open Date + Time pickers for the bottom (world) clock and convert back to local top time
+  Future<void> _pickCustomBottomTime() async {
+    final currentBottom = _bottomTime;
+
+    // Step 1: Pick date in the bottom timezone
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: DateTime(
+        currentBottom.year,
+        currentBottom.month,
+        currentBottom.day,
+      ),
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2100),
+      helpText: 'SET DATE IN ${_selectedTimezone.city.toUpperCase()}',
+      confirmText: 'NEXT',
+      cancelText: 'CANCEL',
+    );
+
+    if (pickedDate == null || !mounted) return;
+
+    // Step 2: Pick time in the bottom timezone
+    final initialTime =
+        TimeOfDay(hour: currentBottom.hour, minute: currentBottom.minute);
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      helpText: 'SET TIME IN ${_selectedTimezone.city.toUpperCase()}',
+      confirmText: 'SET TIME',
+      cancelText: 'CANCEL',
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(alwaysUse24HourFormat: _is24Hour),
+        child: child!,
+      ),
+    );
+
+    if (pickedTime == null || !mounted) return;
+
+    // Step 3: Combine into a wall-clock DateTime in the bottom timezone
+    final bottomWallClock = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+      0,
+    );
+
+    // Step 4: Convert back to local (top-clock) time
+    final equivalentLocal =
+        _timezoneService.convertToLocal(bottomWallClock, _selectedTimezone.id);
+
+    setState(() {
+      _isCustomTime = true;
+      _customTimeOffset = equivalentLocal.difference(_now);
+    });
+
+    if (mounted) {
+      final dateLabel =
+          '${pickedDate.day}/${pickedDate.month}/${pickedDate.year}';
+      final timeLabel = _is24Hour
+          ? '${pickedTime.hour.toString().padLeft(2, '0')}:${pickedTime.minute.toString().padLeft(2, '0')}'
+          : pickedTime.format(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '${_selectedTimezone.city} set to $dateLabel $timeLabel — top clock updated',
+          ),
+          behavior: SnackBarBehavior.floating,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   /// Open modal bottom sheet to select from all available timezones
   Future<void> _openTimezonePicker() async {
     final selected = await TimezonePickerSheet.show(
@@ -339,7 +416,9 @@ class _DualClockScreenState extends State<DualClockScreen> {
   ) {
     return ClockDisplayCard(
       title: _isCustomTime ? 'CUSTOM SYSTEM TIME' : 'SYSTEM LOCAL TIME',
-      subtitle: 'Tap to edit time with Material picker',
+      subtitle: _isCustomTime
+          ? 'Custom mode active — tap to edit time'
+          : 'Live local time — tap to set a custom time',
       headerIcon: _isCustomTime ? Icons.edit_calendar_rounded : Icons.access_time_filled,
       dateTime: topDateTime,
       is24Hour: _is24Hour,
@@ -379,7 +458,7 @@ class _DualClockScreenState extends State<DualClockScreen> {
       duration: const Duration(milliseconds: 250),
       transitionBuilder: (child, animation) => SizeTransition(
         sizeFactor: animation,
-        axisAlignment: -1.0,
+        alignment: Alignment.topCenter,
         child: FadeTransition(opacity: animation, child: child),
       ),
       child: _isCustomTime
@@ -456,16 +535,21 @@ class _DualClockScreenState extends State<DualClockScreen> {
   ) {
     return ClockDisplayCard(
       title: _selectedTimezone.city.toUpperCase(),
-      subtitle: '${_selectedTimezone.region} • Tap to change timezone',
+      subtitle: _isCustomTime
+          ? '${_selectedTimezone.region} • Custom time mode — tap to change timezone'
+          : '${_selectedTimezone.region} • Tap to change timezone',
       headerIcon: Icons.public_rounded,
       dateTime: bottomDateTime,
       is24Hour: _is24Hour,
+      isCustom: _isCustomTime,
       timezoneLabel:
           '${_selectedTimezone.id} (${_selectedTimezone.abbreviation.isNotEmpty ? "${_selectedTimezone.abbreviation}, " : ""}${_selectedTimezone.offsetString})',
       trailingBadge: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: colorScheme.primaryContainer,
+          color: _isCustomTime
+              ? colorScheme.primary
+              : colorScheme.primaryContainer,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -475,17 +559,50 @@ class _DualClockScreenState extends State<DualClockScreen> {
               _selectedTimezone.offsetString,
               style: theme.textTheme.labelSmall?.copyWith(
                 fontWeight: FontWeight.bold,
-                color: colorScheme.onPrimaryContainer,
+                color: _isCustomTime
+                    ? colorScheme.onPrimary
+                    : colorScheme.onPrimaryContainer,
               ),
             ),
             const SizedBox(width: 4),
             Icon(
               Icons.arrow_drop_down,
               size: 16,
-              color: colorScheme.onPrimaryContainer,
+              color: _isCustomTime
+                  ? colorScheme.onPrimary
+                  : colorScheme.onPrimaryContainer,
             ),
           ],
         ),
+      ),
+      bottomAction: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _pickCustomBottomTime,
+              icon: const Icon(Icons.edit_calendar_outlined, size: 16),
+              label: Text(
+                _isCustomTime ? 'Edit Date & Time' : 'Set Date & Time',
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor:
+                    _isCustomTime ? colorScheme.primary : colorScheme.secondary,
+                side: BorderSide(
+                  color: _isCustomTime
+                      ? colorScheme.primary.withValues(alpha: 0.6)
+                      : colorScheme.outlineVariant,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                textStyle: theme.textTheme.labelMedium
+                    ?.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        ],
       ),
       onTap: _openTimezonePicker,
     );
